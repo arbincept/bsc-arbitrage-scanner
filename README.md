@@ -2,6 +2,8 @@
 
 # BSC Arbitrage Scanner
 
+![Study routes after gas, slippage and token taxes — BSC Arbitrage Scanner by Lukecele](docs/assets/social-card.svg)
+
 **Explore quoted arbitrage spreads after gas, slippage, and token taxes.**
 
 Built and maintained by **[Luca Celebrano · @Lukecele](https://github.com/Lukecele)**, founder of [Arbitrage Inception](https://github.com/arbincept).
@@ -41,6 +43,26 @@ python scanner.py
 On Windows, activate the environment with `.venv\Scripts\activate` instead.
 
 The terminal shows scanning progress. When a quote cycle meets the configured threshold and route-build checks, it prints an alert with estimated taxes, gas, ROI, and route paths. Stop with **Ctrl+C**. No wallet or private key is required.
+
+### Terminal example
+
+**Illustrative layout, not captured output.** Labels below are simplified in English; brackets mark placeholders, not measured results. The scanner currently prints its alert labels in Italian.
+
+```text
+Scan: [time] [index/total] [symbol]
+Input: 0.005 BNB (default)
+
+When the alert conditions pass:
+Liquidity: [reported USD]
+Token taxes: buy [rate] / sell [rate]
+Slippage buffer: 0.5% (default)
+Estimated gas: [BNB]
+Estimated net ROI: [percent] / [BNB]
+Buy path: [DEX] -> [DEX]
+Sell path: [DEX] -> [DEX]
+```
+
+Liquidity and taxes are provider-reported values. Gas combines estimates from both quote legs; net ROI compares the adjusted return with the input. Paths name exchanges returned by the aggregator. An alert also requires both route-build checks and a two-minute per-token cooldown. See [Read the estimates correctly](#read-the-estimates-correctly) before interpreting any output.
 
 ## Configure your research
 
