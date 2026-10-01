@@ -1,151 +1,89 @@
-# ⚡ BSC Full-Friction Arbitrage & Route Scanner
+<div align="center">
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
-[![Python 3.10+](https://img.shields.io/badge/Python-3.10%2B-3776AB?logo=python&logoColor=white)](https://www.python.org/)
-[![Network: BSC](https://img.shields.io/badge/Network-BNB_Smart_Chain-F0B90B?logo=binance&logoColor=white)](https://bscscan.com)
-[![Aggregator: KyberSwap](https://img.shields.io/badge/Aggregator-KyberSwap_API-00b894)](https://kyberswap.com)
-[![Security: GoPlus](https://img.shields.io/badge/Security-GoPlus_API-6C5CE7)](https://gopluslabs.io)
-[![Telemetry: DEXScreener](https://img.shields.io/badge/Telemetry-DEXScreener_API-2ecc71)](https://dexscreener.com)
-[![GitHub stars](https://img.shields.io/github/stars/arbincept/bsc-arbitrage-scanner?style=social)](https://github.com/arbincept/bsc-arbitrage-scanner)
+# BSC Arbitrage Scanner
 
-> ℹ️ **Operational Mode & Read-Only Disclosure**:  
-> This software is a **production-grade read-only telemetry scanner and multi-friction route simulation engine**. It queries real-time DEX liquidity aggregators, on-chain token security APIs, and liquidity depth feeds to identify authentic triangular/cross-pair arbitrage spreads between native BNB and verified BEP-20 tokens.  
-> **Automated transaction signing is disabled by design**: the tool holds zero private keys, stores no mnemonic phrases, and requires no wallet connection.
+**Explore quoted arbitrage spreads after gas, slippage, and token taxes.**
 
----
+Built and maintained by **[Luca Celebrano · @Lukecele](https://github.com/Lukecele)**, founder of [Arbitrage Inception](https://github.com/arbincept).
 
-## 🏛️ Architecture & Full-Friction Model
+**[Quick start](#quick-start)** · **[Star this repository](https://github.com/arbincept/bsc-arbitrage-scanner)** · **[Follow Lukecele](https://github.com/Lukecele)**
 
-Standard arbitrage scanners frequently trigger **false-positive alerts** because they only evaluate naive theoretical spot price ratios, ignoring on-chain transaction taxes, liquidity pool depths, and execution slippage. 
+[Quick start](#quick-start) · [Contribute](#contribute) · [MIT license](LICENSE)
 
-This engine implements a **4-Tier Defense & Real-World Friction Model**:
+</div>
 
-```mermaid
-flowchart TD
-    TokenList["PancakeSwap and ViaProtocol Lists<br>(1,600+ Verified BEP-20 Tokens)"] --> Queue["Evaluation Queue"]
-    
-    subgraph Tier1["Tier 1: Depth and Honeypot Filter"]
-        Queue --> LiqCheck["DEXScreener Liquidity Depth<br>(Min. 500 USD Threshold)"]
-        LiqCheck -->|"Pass"| SecCheck["GoPlus Security API<br>(Honeypot and Blacklist Verification)"]
-    end
-    
-    subgraph Tier2["Tier 2: Tax-Aware Dual-Leg Routing"]
-        SecCheck -->|"Pass"| BuyQuote["1. KyberSwap Quote: WBNB to TOKEN"]
-        BuyQuote --> TaxDeduct1["Deduct Buy Tax (Fee-On-Transfer)"]
-        TaxDeduct1 --> SellQuote["2. KyberSwap Quote: TOKEN to WBNB<br>(Calculated on Actual Net Tokens)"]
-        SellQuote --> TaxDeduct2["Deduct Sell Tax"]
-    end
-    
-    subgraph Tier3["Tier 3: Friction and Execution Safeguards"]
-        TaxDeduct2 --> SlipBuffer["Deduct Slippage Buffer (0.5%)"]
-        SlipBuffer --> GasDeduct["Deduct Dynamic Gas Fees (Buy + Sell)"]
-        GasDeduct --> ProfitEval{"Net ROI at least Min Threshold?"}
-    end
+## What it does
 
-    subgraph Tier4["Tier 4: Anti-Phantom Route Compilation"]
-        ProfitEval -->|"Yes"| CalldataBuild["KyberSwap /route/build<br>(Calldata Compilation Verification)"]
-        CalldataBuild -->|"Executable OK"| Alert["Verified Terminal Alert<br>Breakdown: Taxes, Gas, Net ROI, Route Paths"]
-    end
-```
+A compact Python research tool for a **WBNB → token → WBNB** quote cycle on BNB Smart Chain.
 
-### 1. 🏷️ Tax-Aware Execution (Fee-On-Transfer Protection)
-Tokens with transfer taxes (e.g. 4% transfer tax on `$ARB INC` or community utility tokens) create false arbitrage signals in basic bots.
-- Automatically queries **GoPlus Security API** to detect on-chain `buy_tax` and `sell_tax`.
-- Deducts `buy_tax` from Leg 1: only the *actual tokens received* on-chain are fed into Leg 2 sell quote.
-- Deducts `sell_tax` from Leg 2 to determine the true gross BNB output.
-- Rejects honeypots (`is_honeypot == 1`) and tokens with punitive taxes (`> 10%`).
+| Input | Purpose |
+| :--- | :--- |
+| **KyberSwap** | Buy/sell route quotes and a route-build check. |
+| **GoPlus** | Reported buy/sell taxes and token security flags. |
+| **DexScreener** | Reported liquidity across token pairs. |
+| **Public token lists** | Tokens to scan, alongside the configured ARB INC token. |
 
-### 2. 💧 Pool Depth & Liquidity Thresholds
-- Queries **DEXScreener** for total aggregated pool liquidity across all DEX pairs.
-- Automatically filters out dead pools and low-liquidity pairs (`< $500 USD`) where order execution would suffer extreme price impact.
+The scanner adjusts quoted output for taxes, a slippage buffer, and estimated gas before comparing it with an alert threshold. It uses synchronous HTTP requests; it does not sign or broadcast transactions.
 
-### 3. 🛡️ Realistic Slippage & Dynamic Gas Friction
-- Applies an execution slippage tolerance buffer (`SLIPPAGE_BUFFER_PCT = 0.5%`).
-- Extracts live gas estimates (`gas` × `gasPrice`) from both route legs and subtracts the exact BNB gas fee from the final balance.
-- Computes **True Net Realized Profit**:
-  $$\text{Net Realized BNB} = \Big(\text{Gross BNB} \times (1 - \text{Sell Tax}) \times (1 - \text{Slippage})\Big) - \text{Total Gas} - \text{Input BNB}$$
+## Quick start
 
-### 4. 🔍 Anti-Phantom Pool Verification
-- Calls `/route/build` with explicit slippage tolerance to ensure the KyberSwap routing smart contract can compile real bytecode and calldata without failing on-chain.
-
----
-
-## 💻 Terminal Telemetry Output
-
-When a genuine, friction-cleared arbitrage opportunity is identified, the engine prints a comprehensive telemetry report:
-
-```text
-⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡
-🚨 OPPORTUNITÀ ARBITRAGGIO VERIFICATA: Arb Inc (Arbitrage Inception)
-📍 Indirizzo Target  : 0x5EE54869Ecd5E752C31aF095187326D4A4D50e1c
-💧 Profondità Pool   : $1,593.41 USD
-🏷️  Token Transfer Tax: Buy 4.0% | Sell 3.8%
-📊 Spread Teorico    : +6.42% (Lordo senza attriti)
-🛡️  Buffer Slippage   : -0.5%
-⛽ Costo Gas Stimato : -0.00048 BNB (~$0.340)
-💎 PROFITTO NETTO    : +1.64% (+0.00008 BNB)
-🛒 Percorso Buy      : PancakeSwap v2 -> Biswap
-💰 Percorso Sell     : PancakeSwap v3 -> PancakeSwap v2
-🔗 Swap Diretto      : https://arbitrage-inc.exchange/swap?tokenOut=0x5EE54869Ecd5E752C31aF095187326D4A4D50e1c
-⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡⚡
-```
-
----
-
-## 🚀 Getting Started
-
-### Prerequisites
-- Python 3.10 or higher
-- Network access to BSC aggregator and security endpoints
-
-### Installation
+Use **Python 3.10+** with network access to the data providers.
 
 ```bash
-# Clone the repository
 git clone https://github.com/arbincept/bsc-arbitrage-scanner.git
 cd bsc-arbitrage-scanner
-
-# Create and activate virtual environment
-python3 -m venv venv
-source venv/bin/activate  # On Windows: venv\Scripts\activate
-
-# Install dependencies
-pip install -r requirements.txt
-```
-
-### Running the Scanner
-
-```bash
+python3 -m venv .venv
+source .venv/bin/activate
+python -m pip install -r requirements.txt
 python scanner.py
 ```
 
-### Configuration Parameters (inside `scanner.py`)
+On Windows, activate the environment with `.venv\Scripts\activate` instead.
 
-| Parameter | Default | Description |
-| :--- | :---: | :--- |
-| `BNB_INPUT_AMOUNT` | `0.005` | Simulation size in native BNB per arbitrage cycle. |
-| `MIN_PROFIT_PCT` | `1.0` | Minimum **real net profit** % required to trigger an alert (after taxes, slippage, and gas). |
-| `SLIPPAGE_BUFFER_PCT` | `0.5` | Dynamic execution slippage buffer subtracted from simulated output. |
-| `MIN_POOL_LIQUIDITY_USD` | `500` | Minimum pool depth in USD required to evaluate a token (filters illiquid pairs). |
-| `MAX_ALLOWED_TAX_PCT` | `10.0` | Maximum allowable transfer tax (ignores honeypots and scam tokens). |
-| `ARB_INC_TOKEN` | `0x5EE5...` | Fixed monitoring address for Arbitrage Inception token. |
+The terminal shows scanning progress. When a quote cycle meets the configured threshold and route-build checks, it prints an alert with estimated taxes, gas, ROI, and route paths. Stop with **Ctrl+C**. No wallet or private key is required.
 
----
+## Configure your research
 
-## 🔗 Ecosystem Integration
+Edit the constants near the top of [scanner.py](scanner.py):
 
-This scanner is an open telemetry tool developed for the **[Arbitrage Inception Ecosystem](https://arbitrage-inc.exchange)** ([github.com/arbincept](https://github.com/arbincept)), supporting cross-DEX liquidity research and decentralized arbitrage monitoring on BNB Smart Chain.
+| Setting | Default | Meaning |
+| :--- | :--- | :--- |
+| `BNB_INPUT_AMOUNT` | `0.005` | Simulated input size in BNB. |
+| `MIN_PROFIT_PCT` | `1.0` | Minimum estimated net ROI percentage for an alert. |
+| `SLIPPAGE_BUFFER_PCT` | `0.5` | Buffer deducted from quoted output. |
+| `MIN_POOL_LIQUIDITY_USD` | `500` | Lower bound applied when reported liquidity is positive. |
+| `MAX_ALLOWED_TAX_PCT` | `10.0` | Maximum reported buy or sell tax percentage. |
+| `ARB_INC_TOKEN` | Defined in source | Token always included in the scan list. |
 
----
+## Read the estimates correctly
 
-## ⭐ Support the Project
+The model applies buy tax before requesting the return quote, then deducts sell tax, slippage, and gas from the return amount. An alert describes a **theoretical quoted opportunity**, not realized profit.
 
-If you find this arbitrage scanner or multi-friction simulation engine useful for your research, bots, or DeFi development, please consider dropping a **Star** on GitHub. It directly supports open-source maintenance and ecosystem tooling!
+- Quotes are fetched at different times and may change before execution.
+- A successful route-build response does not prove a transaction would succeed or be profitable.
+- Missing security data currently falls back to default values, and zero/unknown liquidity does not trigger the positive-liquidity filter. Missing data must not be read as a clean security result.
+- Security results are cached for the process lifetime; liquidity is cached for 15 minutes.
 
-[![GitHub stars](https://img.shields.io/github/stars/arbincept/bsc-arbitrage-scanner?style=social)](https://github.com/arbincept/bsc-arbitrage-scanner)
+These limits make the scanner useful for studying routing and cost assumptions, with further verification required before acting on an alert.
 
----
+## Explore the code
 
-## 📜 License
+The implementation lives in one file: [scanner.py](scanner.py). Start with `evaluate_token` for the cost model, `get_token_security` and `get_token_liquidity` for provider handling, and `verify_kyber_executable` for the route-build check.
 
-Distributed under the [MIT License](./LICENSE). Open-source research tool for on-chain telemetry and DeFi developers.
+Dependencies are declared in [requirements.txt](requirements.txt). There is currently no automated test suite in this repository.
+
+## Contribute
+
+Reproducible bug reports, clearer documentation, and focused improvements are welcome. Start with an [issue](https://github.com/arbincept/bsc-arbitrage-scanner/issues) describing the behavior, environment, and expected result. Include the relevant checks with a pull request.
+
+For sensitive reports, use the organization's [security policy](https://github.com/arbincept/.github/blob/main/SECURITY.md).
+
+## More from Lukecele
+
+This project is part of an independent ecosystem built by **[Luca Celebrano (@Lukecele)](https://github.com/Lukecele)**.
+
+[Arb-Inc All-in-Dex](https://github.com/arbincept/Arb-Inc-All-in-Dex) · [Inception Flap Scanner](https://github.com/arbincept/inception-flap-scanner) · [Arbitrage Inc Earn](https://github.com/arbincept/arbitrage-inc-earn)
+
+If this project helps you, **[give it a star](https://github.com/arbincept/bsc-arbitrage-scanner)** and **[follow Lukecele](https://github.com/Lukecele)** for future builds. [Sponsorship](https://github.com/sponsors/Lukecele) helps support ongoing work.
+
+[Telegram](https://t.me/ArbitrageInception) · [Updates on X](https://x.com/Arbitrageincept) · [MIT license](LICENSE)
