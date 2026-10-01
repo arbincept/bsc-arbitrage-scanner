@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title description">
+  <title id="title">BSC Arbitrage Scanner — by Lukecele</title>
+  <desc id="description">Study routes after gas, slippage and token taxes. A read-only Python research tool for WBNB to token to WBNB quotes on BNB Chain.</desc>
+  <rect width="1280" height="640" fill="#101820"/>
+  <rect x="0" y="0" width="1280" height="8" fill="#f0b90b"/>
+  <g font-family="Arial, Helvetica, sans-serif">
+    <text x="72" y="85" font-size="22" font-weight="700" letter-spacing="3" fill="#f0b90b">BNB CHAIN / PYTHON / READ-ONLY</text>
+    <text x="68" y="178" font-size="68" font-weight="700" fill="#ffffff">BSC Arbitrage Scanner</text>
+    <g font-size="44" fill="#d8e1eb">
+      <text x="72" y="256">Study routes after gas,</text>
+      <text x="72" y="313">slippage &amp; token taxes</text>
+    </g>
+    <g fill="#1c2a36" stroke="#425361" stroke-width="2">
+      <rect x="72" y="370" width="300" height="82" rx="12"/>
+      <rect x="490" y="370" width="300" height="82" rx="12"/>
+      <rect x="908" y="370" width="300" height="82" rx="12"/>
+    </g>
+    <g fill="#f0b90b">
+      <path d="M400 407h49v-9l17 13-17 13v-9h-49z"/>
+      <path d="M818 407h49v-9l17 13-17 13v-9h-49z"/>
+    </g>
+    <g fill="#ffffff" font-size="30" font-weight="700" text-anchor="middle">
+      <text x="222" y="422">WBNB</text>
+      <text x="640" y="422">TOKEN</text>
+      <text x="1058" y="422">WBNB</text>
+    </g>
+    <text x="72" y="495" font-size="23" fill="#acbdcc">Theoretical quotes · No transaction signing</text>
+    <path d="M72 528H1208" stroke="#425361"/>
+    <text x="72" y="585" font-size="34" font-weight="700" fill="#f0b90b">by Lukecele</text>
+    <text x="1208" y="582" text-anchor="end" font-size="24" fill="#d8e1eb">github.com/arbincept/bsc-arbitrage-scanner</text>
+  </g>
+</svg>
