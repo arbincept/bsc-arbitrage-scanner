@@ -140,6 +140,33 @@ def verify_kyber_executable(route_summary, sender="0xaff5163102a945952d75ea6a32d
         pass
     return False
 
+def calculate_token_received(raw_token_out, buy_tax):
+    return int(raw_token_out * (1.0 - buy_tax))
+
+def calculate_trade_metrics(quote_buy, quote_sell, sell_tax):
+    raw_bnb_out_wei = int(quote_sell.get("amountOut", 0))
+    actual_bnb_out = (raw_bnb_out_wei / 1e18) * (1.0 - sell_tax)
+    bnb_after_slippage = actual_bnb_out * (1.0 - SLIPPAGE_BUFFER_PCT / 100.0)
+
+    gas_buy_wei = int(quote_buy.get("gas", 250000)) * int(quote_buy.get("gasPrice", 1e9))
+    gas_sell_wei = int(quote_sell.get("gas", 250000)) * int(quote_sell.get("gasPrice", 1e9))
+    total_gas_bnb = (gas_buy_wei + gas_sell_wei) / 1e18
+
+    final_net_bnb = bnb_after_slippage - total_gas_bnb
+    net_profit_bnb = final_net_bnb - BNB_INPUT_AMOUNT
+    net_roi_pct = (net_profit_bnb / BNB_INPUT_AMOUNT) * 100.0
+    theoretical_gross_bnb = (raw_bnb_out_wei / 1e18) - BNB_INPUT_AMOUNT
+    theoretical_gross_pct = (theoretical_gross_bnb / BNB_INPUT_AMOUNT) * 100.0
+
+    return {
+        "actual_bnb_out": actual_bnb_out,
+        "total_gas_bnb": total_gas_bnb,
+        "final_net_bnb": final_net_bnb,
+        "net_profit_bnb": net_profit_bnb,
+        "net_roi_pct": net_roi_pct,
+        "theoretical_gross_pct": theoretical_gross_pct,
+    }
+
 def get_quote(token_in, token_out, amount_wei):
     """Queries KyberSwap Aggregation API for optimal multi-DEX route."""
     params = {
@@ -226,7 +253,7 @@ def evaluate_token(token_data, current_idx, total_tokens):
         return
 
     # Real-World Deduction: Subtract buy tax (tokens retained on-chain)
-    actual_token_received = int(raw_token_out * (1.0 - buy_tax))
+    actual_token_received = calculate_token_received(raw_token_out, buy_tax)
     if actual_token_received <= 0:
         return
         
@@ -237,29 +264,14 @@ def evaluate_token(token_data, current_idx, total_tokens):
     if not quote_sell:
         return
         
-    raw_bnb_out_wei = int(quote_sell.get("amountOut", 0))
-    if raw_bnb_out_wei <= 0:
+    if int(quote_sell.get("amountOut", 0)) <= 0:
         return
 
-    # Real-World Deduction: Subtract sell tax
-    actual_bnb_out = (raw_bnb_out_wei / 1e18) * (1.0 - sell_tax)
-    
-    # 5. Real-World Deduction: Slippage Buffer
-    bnb_after_slippage = actual_bnb_out * (1.0 - SLIPPAGE_BUFFER_PCT / 100.0)
-    
-    # 6. Real-World Deduction: Dynamic Gas Fees
-    gas_buy_wei = int(quote_buy.get("gas", 250000)) * int(quote_buy.get("gasPrice", 1e9))
-    gas_sell_wei = int(quote_sell.get("gas", 250000)) * int(quote_sell.get("gasPrice", 1e9))
-    total_gas_bnb = (gas_buy_wei + gas_sell_wei) / 1e18
-    
-    # 7. True Net Profit Calculation
-    final_net_bnb = bnb_after_slippage - total_gas_bnb
-    net_profit_bnb = final_net_bnb - BNB_INPUT_AMOUNT
-    net_roi_pct = (net_profit_bnb / BNB_INPUT_AMOUNT) * 100.0
-    
-    # Theoretical gross profit (for analytical comparison)
-    theoretical_gross_bnb = (raw_bnb_out_wei / 1e18) - BNB_INPUT_AMOUNT
-    theoretical_gross_pct = (theoretical_gross_bnb / BNB_INPUT_AMOUNT) * 100.0
+    metrics = calculate_trade_metrics(quote_buy, quote_sell, sell_tax)
+    total_gas_bnb = metrics["total_gas_bnb"]
+    net_profit_bnb = metrics["net_profit_bnb"]
+    net_roi_pct = metrics["net_roi_pct"]
+    theoretical_gross_pct = metrics["theoretical_gross_pct"]
 
     # 8. Filter by Minimum Net Profit Requirement
     if net_roi_pct >= MIN_PROFIT_PCT:
