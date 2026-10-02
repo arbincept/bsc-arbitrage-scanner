@@ -25,3 +25,6 @@ jobs:
 
       - name: Validate Python Syntax & Bytecode Compilation
         run: python -m py_compile scanner.py
+
+      - name: Run deterministic tests
+        run: python -m unittest discover -s tests -p 'test_*.py'
