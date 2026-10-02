@@ -2,6 +2,8 @@
 
 # BSC Arbitrage Scanner
 
+[![CI](https://github.com/arbincept/bsc-arbitrage-scanner/actions/workflows/ci.yml/badge.svg)](https://github.com/arbincept/bsc-arbitrage-scanner/actions/workflows/ci.yml)
+
 ![Study routes after gas, slippage and token taxes — BSC Arbitrage Scanner by Lukecele](docs/assets/social-card.svg)
 
 **Explore quoted arbitrage spreads after gas, slippage, and token taxes.**
