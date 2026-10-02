@@ -90,9 +90,13 @@ These limits make the scanner useful for studying routing and cost assumptions, 
 
 ## Explore the code
 
-The implementation lives in one file: [scanner.py](scanner.py). Start with `evaluate_token` for the cost model, `get_token_security` and `get_token_liquidity` for provider handling, and `verify_kyber_executable` for the route-build check.
+The implementation lives in [scanner.py](scanner.py). Start with `evaluate_token` for the scan flow, `calculate_trade_metrics` for the pure cost model, `get_token_security` and `get_token_liquidity` for provider handling, and `verify_kyber_executable` for the route-build check.
 
-Dependencies are declared in [requirements.txt](requirements.txt). There is currently no automated test suite in this repository.
+Dependencies are declared in [requirements.txt](requirements.txt). The deterministic cost-model checks run with the Python standard library and do not call external providers:
+
+```bash
+python -m unittest discover -s tests -p 'test_*.py'
+```
 
 ## Contribute
 
