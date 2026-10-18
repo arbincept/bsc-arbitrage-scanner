@@ -13,11 +13,14 @@
 
 Built and maintained by **[Luca Celebrano · @Lukecele](https://github.com/Lukecele)**, founder of [Arbitrage Inception](https://github.com/arbincept).
 
-**[Quick start](#quick-start)** · **[Star this repository](https://github.com/arbincept/bsc-arbitrage-scanner)** · **[Follow Lukecele](https://github.com/Lukecele)**
-
-[Quick start](#quick-start) · [Contribute](#contribute) · [MIT license](LICENSE)
+**[Quick start](#quick-start)** · **[Follow Lukecele](https://github.com/Lukecele)** · **[Contribute](#contribute)** · **[MIT license](LICENSE)**
 
 </div>
+
+> [!TIP]
+> **Found this arbitrage simulation engine useful?**  
+> If this scanner helps your DEX routing research or trading telemetry, please **star this repository** in the top-right corner on GitHub! Your star helps keep the scanner maintained and open-source.
+
 
 ## What it does
 
